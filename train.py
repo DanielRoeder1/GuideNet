@@ -10,6 +10,74 @@ import torch
 import yaml
 from easydict import EasyDict as edict
 
+from dataloaders.dense_to_sparse import UniformSampling, SimulatedStereo, ORBSampling
+import numpy as np
+
+def create_data_loaders():
+    # Data loading code
+    print("=> creating data loaders ...")
+    nyu_path = 'nyudepthv2'
+    traindir = os.path.join(nyu_path, 'train')
+    valdir = os.path.join(nyu_path, 'val')
+
+    #traindir = os.path.join('data', args.data, 'train')
+    #valdir = os.path.join('data', args.data, 'val')
+    train_loader = None
+    val_loader = None
+
+
+    max_depth = None
+    sparsifier = "orb_sampler"
+    num_samples = 500
+    data = 'nyudepthv2'
+    evaluate = False
+    modality = "rgbd"
+    workers = 10
+    batch_size = 8
+
+
+
+    # sparsifier is a class for generating random sparse depth input from the ground truth
+    sparsifier = None
+    max_depth = max_depth if max_depth >= 0.0 else np.inf
+    if sparsifier == UniformSampling.name:
+        sparsifier = UniformSampling(num_samples=num_samples, max_depth=max_depth)
+    elif sparsifier == SimulatedStereo.name:
+        sparsifier = SimulatedStereo(num_samples=num_samples, max_depth=max_depth)
+    elif sparsifier == ORBSampling.name:
+        sparsifier = ORBSampling(num_samples=num_samples, max_depth=max_depth)
+        
+
+    if data == 'nyudepthv2':
+        from dataloaders.nyu_dataloader import NYUDataset
+        if not evaluate:
+            train_dataset = NYUDataset(traindir, type='train',
+                modality=modality, sparsifier=sparsifier)
+        val_dataset = NYUDataset(valdir, type='val',
+            modality=modality, sparsifier=sparsifier)
+
+    else:
+        raise RuntimeError('Dataset not found.' +
+                           'The dataset must be either of nyudepthv2 or kitti.')
+
+    # set batch size to be 1 for validation
+    val_loader = torch.utils.data.DataLoader(val_dataset,
+        batch_size=1, shuffle=False, num_workers=workers, pin_memory=True)
+
+    # put construction of train loader here, for those who are interested in testing only
+    if not evaluate:
+        train_loader = torch.utils.data.DataLoader(
+            train_dataset, batch_size=batch_size, shuffle=True,
+            num_workers=workers, pin_memory=True, sampler=None,
+            worker_init_fn=lambda work_id:np.random.seed(work_id))
+            # worker_init_fn ensures different sampling patterns for each data loading thread
+
+    print("=> data loaders created.")
+    return train_loader, val_loader
+
+
+
+
 
 def train(epoch):
     global iters
@@ -57,7 +125,8 @@ if __name__ == '__main__':
     from utils import *
 
     init_seed(config)
-    trainloader, testloader = init_dataset(config)
+    #trainloader, testloader = init_dataset(config)
+    trainloader, testloader = create_data_loaders()
     net = init_net(config)
     criterion = init_loss(config)
     metric = init_metric(config)
@@ -70,3 +139,5 @@ if __name__ == '__main__':
         train(epoch)
         lr_scheduler.step()
     print('Best Results: {:.4f}\n'.format(best_metric))
+
+
