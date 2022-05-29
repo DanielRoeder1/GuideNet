@@ -20,6 +20,9 @@ class RMSE(nn.Module):
         super().__init__()
 
     def forward(self, outputs, target, *args):
+        # Ignore that padded part of the images
+        outputs = outputs[:,:,14:-14,8:-8]
+        target = target[:,:,14:-14,8:-8]
         val_pixels = (target > 1e-3).float().cuda()
         err = (target * val_pixels - outputs * val_pixels) ** 2
         loss = torch.sum(err.view(err.size(0), 1, -1), -1, keepdim=True)
@@ -33,6 +36,9 @@ class MSE(nn.Module):
         super().__init__()
 
     def forward(self, outputs, target, *args):
+        # Ignore that padded part of the images
+        outputs = outputs[:,:,14:-14,8:-8]
+        target = target[:,:,14:-14,8:-8]
         val_pixels = (target > 1e-3).float().cuda()
         loss = target * val_pixels - outputs * val_pixels
         return loss ** 2

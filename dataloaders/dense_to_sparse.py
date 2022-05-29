@@ -50,8 +50,8 @@ class ORBSampling(DenseToSparse):
         DenseToSparse.__init__(self)
         self.num_samples = num_samples
         self.max_depth = max_depth
-        self.orb_extractor = cv2.ORB_create(nfeatures = 5000, scaleFactor=1.2, fastThreshold= 14, nlevels=8, edgeThreshold = 0)
-        self.orb_extractor_r = cv2.ORB_create(nfeatures = 5000, scaleFactor=1.1, fastThreshold= 7, nlevels=8, edgeThreshold = 0)
+        self.orb_extractor = cv2.ORB_create(nfeatures = 5000, scaleFactor=1.2, fastThreshold= 14, nlevels=8, edgeThreshold = 10)
+        self.orb_extractor_r = cv2.ORB_create(nfeatures = 5000, scaleFactor=1.1, fastThreshold= 7, nlevels=8, edgeThreshold = 10)
         self.uniform_sample = UniformSampling(num_samples // 2, max_depth)
 
     def __repr__(self):
@@ -76,9 +76,6 @@ class ORBSampling(DenseToSparse):
             
         for kp in kp_s:
             mask[int(kp.pt[1]),int(kp.pt[0])] = True
-
-        else:
-          print("!!!!!! USED UNIFORM SAMPLING !!!!!")
           
         return mask
 
