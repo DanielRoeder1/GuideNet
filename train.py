@@ -16,7 +16,7 @@ import numpy as np
 def create_data_loaders():
     # Data loading code
     print("=> creating data loaders ...")
-    nyu_path = 'nyudepthv2'
+    nyu_path = '../nyudepthv2'
     traindir = os.path.join(nyu_path, 'train')
     valdir = os.path.join(nyu_path, 'val')
 
@@ -39,7 +39,7 @@ def create_data_loaders():
 
     # sparsifier is a class for generating random sparse depth input from the ground truth
     sparsifier = None
-    max_depth = max_depth if max_depth >= 0.0 else np.inf
+    max_depth = np.inf
     if sparsifier == UniformSampling.name:
         sparsifier = UniformSampling(num_samples=num_samples, max_depth=max_depth)
     elif sparsifier == SimulatedStereo.name:
@@ -121,7 +121,9 @@ if __name__ == '__main__':
         config_data = yaml.load(file, Loader=yaml.FullLoader)
     config = edict(config_data)
     print(config.name)
-    os.environ["CUDA_VISIBLE_DEVICES"] = ','.join([str(gpu_id) for gpu_id in config.gpu_ids])
+    #os.environ["CUDA_VISIBLE_DEVICES"] = ','.join([str(gpu_id) for gpu_id in config.gpu_ids])
+    # Only one GPU available in colab -> ignore gpu ids in yaml file
+    os.environ["CUDA_VISIBLE_DEVICES"] = '0'
     from utils import *
 
     init_seed(config)
