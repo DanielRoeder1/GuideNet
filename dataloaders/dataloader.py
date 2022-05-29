@@ -119,7 +119,7 @@ class MyDataloader(data.Dataset):
         elif self.modality == 'd':
             input_np = self.create_sparse_depth(rgb_np, depth_np)
 
-        input_tensor = to_tensor(input_np)
+        input_tensor = to_tensor(rgb_np)
         while input_tensor.dim() < 3:
             input_tensor = input_tensor.unsqueeze(0)
         depth_tensor = to_tensor(depth_np)

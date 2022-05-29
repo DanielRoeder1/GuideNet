@@ -27,8 +27,9 @@ class NYUDataset(MyDataloader):
         rgb_np = self.color_jitter(rgb_np) # random color jittering
         rgb_np = np.asfarray(rgb_np, dtype='float') / 255
         # Add 0 padding to get 320x256 input shape
-        rgb_np = np.pad(rgb_np,((14,14),(8,8)), "constant")
+        rgb_np = np.pad(rgb_np, ((14,14),(8,8),(0,0)), "constant")
         depth_np = transform(depth_np)
+        depth_np = np.pad(depth_np, ((14,14),(8,8)), "constant")
         
 
         return rgb_np, depth_np
