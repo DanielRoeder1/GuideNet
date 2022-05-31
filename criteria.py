@@ -21,7 +21,8 @@ class RMSE(nn.Module):
 
     def forward(self, outputs, target, *args):
         # Ignore that padded part of the images
-        outputs = outputs[:,:,14:-14,8:-8]
+        # Output returned by model is tuple with 1 entry which corresponds to output tensor
+        outputs = outputs[0][:,:,14:-14,8:-8]
         target = target[:,:,14:-14,8:-8]
         val_pixels = (target > 1e-3).float().cuda()
         err = (target * val_pixels - outputs * val_pixels) ** 2
@@ -37,7 +38,7 @@ class MSE(nn.Module):
 
     def forward(self, outputs, target, *args):
         # Ignore that padded part of the images
-        outputs = outputs[:,:,14:-14,8:-8]
+        outputs = outputs[0][:,:,14:-14,8:-8]
         target = target[:,:,14:-14,8:-8]
         val_pixels = (target > 1e-3).float().cuda()
         loss = target * val_pixels - outputs * val_pixels
