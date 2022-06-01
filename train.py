@@ -13,6 +13,11 @@ from easydict import EasyDict as edict
 from dataloaders.dense_to_sparse import UniformSampling, SimulatedStereo, ORBSampling
 import numpy as np
 
+from matplotlib import pyplot as plt
+cmap = plt.cm.viridis
+from PIL import Image
+
+
 def create_data_loaders():
     # Data loading code
     print("=> creating data loaders ...")
@@ -38,7 +43,6 @@ def create_data_loaders():
 
 
     # sparsifier is a class for generating random sparse depth input from the ground truth
-    #sparsifier = None
     max_depth = np.inf
     if sparsifier == UniformSampling.name:
         sparsifier = UniformSampling(num_samples=num_samples, max_depth=max_depth)
@@ -76,12 +80,42 @@ def create_data_loaders():
     return train_loader, val_loader
 
 
+def colored_depthmap(depth, d_min=None, d_max=None):
+    if d_min is None:
+        d_min = np.min(depth)
+    if d_max is None:
+        d_max = np.max(depth)
+    depth_relative = (depth - d_min) / (d_max - d_min)
+    return 255 * cmap(depth_relative)[:,:,:3] # H, W, C
+
+
+def data2image(rgb,lidar, depth, output,  epoch, batch_idx):
+    os.makedirs("comparision_images", exist_ok= True)
+    pred = output[0].squeeze().cpu().numpy()[14:-14,8:-8]
+    rgb = rgb.squeeze().cpu().numpy()
+    groundtruth = depth.squeeze().cpu().numpy()[14:-14,8:-8]
+    lidar = lidar.squeeze().cpu().numpy()[14:-14,8:-8]
+
+    rgb = np.transpose(rgb, (1,2,0))[14:-14,8:-8,:]
+    rgb = (rgb * 255).astype(int)
+
+    d_min = min(np.min(groundtruth), np.min(pred), np.min(lidar))
+    d_max = max(np.max(groundtruth), np.max(pred), np.max(lidar))
+    groundtruth = colored_depthmap(groundtruth, d_min, d_max)
+    pred = colored_depthmap(pred, d_min, d_max)
+    lidar = colored_depthmap(lidar, d_min, d_max)
+
+    stack = np.hstack((rgb, lidar, pred, groundtruth))
+    img_merge = Image.fromarray(stack.astype('uint8'))
+    img_merge.save(f"comparision_images/comparison_{epoch}_{batch_idx}.jpeg")
+
+
 def train(epoch):
     global iters
     Avg = AverageMeter()
     for batch_idx, (rgb, lidar, depth) in enumerate(trainloader):
         if epoch >= config.test_epoch and iters % config.test_iters == 0:
-            test()
+            test(epoch,batch_idx)
         net.train()
         rgb, lidar, depth = rgb.cuda(), lidar.cuda(), depth.cuda()
         optimizer.zero_grad()
@@ -95,7 +129,8 @@ def train(epoch):
             print('Epoch {} Idx {} Loss {:.4f}'.format(epoch, batch_idx, Avg.avg))
 
 
-def test():
+def test(epoch,batch_idx_train):
+    print("=> Running test:")
     global best_metric
     Avg = AverageMeter()
     net.eval()
@@ -105,7 +140,13 @@ def test():
             output = net(rgb, lidar)
             prec = metric(output, depth).mean()
         Avg.update(prec.item(), rgb.size(0))
+        if batch_idx % 100 == 0:
+          print(f"Batch: {batch_idx}, Loss: {prec.cpu().numpy()}")
 
+        if batch_idx == 0:
+          data2image(rgb,lidar, depth, output, epoch, batch_idx_train)
+
+    print(f"Avg Loss: {Avg.avg}")
     if Avg.avg < best_metric:
         best_metric = Avg.avg
         save_state(config, net)
@@ -113,6 +154,9 @@ def test():
 
 
 if __name__ == '__main__':
+    # Start training from pretrained
+    train_from_checkpoint = True
+
     # config_name = 'GN.yaml'
     config_name = 'GNS.yaml'
     with open(os.path.join('configs', config_name), 'r') as file:
@@ -135,6 +179,16 @@ if __name__ == '__main__':
     lr_scheduler = init_lr_scheduler(config, optimizer)
     iters = 0
     best_metric = 100
+
+    if train_from_checkpoint:
+      print("=> Loading model from checkpoint!")
+      net = init_net(config)
+      torch.cuda.empty_cache()
+      torch.backends.cudnn.benchmark = True
+      net.cuda()
+      net = encoding.parallel.DataParallelModel(net)
+      net = resume_state(config, net)
+
     for epoch in range(config.start_epoch, config.nepoch):
         train(epoch)
         lr_scheduler.step()

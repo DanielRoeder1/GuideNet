@@ -37,7 +37,7 @@ test_aug_configs:
     - 80.5267
     - 82.1483
 test_epoch: 0
-test_iters: 500
+test_iters: 2000
 train_aug_configs:
 - Jitter
 - Flip
