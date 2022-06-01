@@ -38,7 +38,7 @@ def create_data_loaders():
 
 
     # sparsifier is a class for generating random sparse depth input from the ground truth
-    sparsifier = None
+    #sparsifier = None
     max_depth = np.inf
     if sparsifier == UniformSampling.name:
         sparsifier = UniformSampling(num_samples=num_samples, max_depth=max_depth)
@@ -76,9 +76,6 @@ def create_data_loaders():
     return train_loader, val_loader
 
 
-
-
-
 def train(epoch):
     global iters
     Avg = AverageMeter()
@@ -108,6 +105,7 @@ def test():
             output = net(rgb, lidar)
             prec = metric(output, depth).mean()
         Avg.update(prec.item(), rgb.size(0))
+
     if Avg.avg < best_metric:
         best_metric = Avg.avg
         save_state(config, net)
