@@ -7,6 +7,7 @@ from train import create_data_loaders
 import numpy as np
 import cv2
 from PIL import Image
+from torchinfo import summary
 
 from matplotlib import pyplot as plt
 cmap = plt.cm.viridis
@@ -26,6 +27,7 @@ def colored_depthmap(depth, d_min=None, d_max=None):
 
 
 def run_test():
+  Avg = AverageMeter()
   sum_loss = 0
   net.eval()
   for batch_idx, (rgb, lidar, depth) in enumerate(testloader):
@@ -42,9 +44,10 @@ def run_test():
     lidar = lidar[14:-14,8:-8]
 
     loss = rmse(groundtruth, pred)
+    Avg.update(loss,1)
     sum_loss += loss
-    if batch_idx % 100 == 0:
-      print(f"Loss for batch {batch_idx} equals: {loss}")
+    #if batch_idx % 100 == 0:
+    #  print(f"Loss for batch {batch_idx} equals: {loss}")
 
     if batch_idx == 0:
       rgb = np.transpose(rgb, (1,2,0))[14:-14,8:-8,:]
@@ -74,6 +77,8 @@ def run_test():
   img_merge = Image.fromarray(stack.astype('uint8'))
   img_merge.save("testin_res.jpeg")
   print(f"Average loss for testset: {sum_loss/654}")
+  print(Avg.avg)
+  return Avg.avg
 
 
 
@@ -92,7 +97,11 @@ if __name__ == '__main__':
   net.cuda()
   net = encoding.parallel.DataParallelModel(net)
   net = resume_state(config, net)
+  print(f"Number of parameters: {sum(p.numel() for p in net.parameters() if p.requires_grad)}")
 
   trainloader, testloader = create_data_loaders()
-
-  run_test()
+  loss_test = []
+  for n_samples in [500,400,300,200,100,0]:
+    testloader.dataset.sparsifier.num_samples = n_samples
+    loss_test.append(run_test())
+  print(loss_test)
