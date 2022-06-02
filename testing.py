@@ -7,7 +7,6 @@ from train import create_data_loaders
 import numpy as np
 import cv2
 from PIL import Image
-from torchinfo import summary
 
 from matplotlib import pyplot as plt
 cmap = plt.cm.viridis
