@@ -9,13 +9,14 @@ import os
 import torch
 import random
 import numpy as np
-import augs
-import models
-import datasets
-import optimizers
 import encoding
-import criteria
 from PIL import Image
+
+from . import augs
+from . import models
+from . import datasets
+from . import optimizers
+from . import criteria
 
 __all__ = [
     'AverageMeter',

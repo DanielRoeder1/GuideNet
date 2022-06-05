@@ -24,7 +24,7 @@ optim_config:
   AdamW:
     lr: 0.001
     weight_decay: 0.05
-resume_seed: 1600
+resume_seed: 9023
 start_epoch: 0
 test_aug_configs:
 - Norm:
