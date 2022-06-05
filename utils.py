@@ -1,5 +1,3 @@
-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
-
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
 # @Filename:    utils.py
