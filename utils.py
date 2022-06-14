@@ -12,11 +12,17 @@ import numpy as np
 import encoding
 from PIL import Image
 
+import yaml
+from easydict import EasyDict as edict
+
+
 from . import augs
 from . import models
 from . import datasets
 from . import optimizers
 from . import criteria
+
+package_directory = os.path.dirname(os.path.abspath(__file__))
 
 __all__ = [
     'AverageMeter',
@@ -76,14 +82,12 @@ def save_state(config, model):
     }
     torch.save(state_dict, os.path.join(save_path, 'result.pth'))
 
-
-def resume_state(config, model):
+def resume_state(config,model):
     env_name = config.name + '_' + str(config.resume_seed)
-    cp_path = os.path.join('checkpoints', env_name, 'result.pth')
+    cp_path = os.path.join(package_directory,'checkpoints', env_name, 'result.pth')
     resume_model = torch.load(cp_path)['net']
     model.load_state_dict(resume_model, strict=True)
     return model
-
 
 def pad_rep(image, ori_size):
     h, w = image.shape
@@ -181,3 +185,19 @@ def init_optim(config, net):
 def init_lr_scheduler(config, optimizer):
     key, params = config.lr_config.popitem()
     return getattr(torch.optim.lr_scheduler, key)(optimizer, **params)
+
+def load_config():
+    filename = os.path.join(package_directory, "configs/GNS.yaml")
+    with open(filename, 'r') as file:
+        config_data = yaml.load(file, Loader=yaml.FullLoader)
+    return edict(config_data)
+
+def load_model():
+    # loads the GNS config
+    config = load_config()
+    net = init_net(config)
+    torch.cuda.empty_cache()
+    torch.backends.cudnn.benchmark = True
+    net.cuda()
+    net = encoding.parallel.DataParallelModel(net)
+    return resume_state(config,net)
