@@ -113,6 +113,7 @@ def data2image(rgb,lidar, depth, output,  epoch, batch_idx):
 def train(epoch):
     global iters
     Avg = AverageMeter()
+    Avg_metric = AverageMeter()
     for batch_idx, (rgb, lidar, depth) in enumerate(trainloader):
         if epoch >= config.test_epoch and iters % config.test_iters == 0:
             test(epoch,batch_idx)
@@ -121,12 +122,14 @@ def train(epoch):
         optimizer.zero_grad()
         output = net(rgb, lidar)
         loss = criterion(output, depth).mean()
+        prec = metric(output, depth).mean()
         loss.backward()
         optimizer.step()
         Avg.update(loss.item())
+        Avg_metric.update(prec.item(), rgb.size(0))
         iters += 1
         if config.vis and batch_idx % config.vis_iters == 0:
-            print('Epoch {} Idx {} Loss {:.4f}'.format(epoch, batch_idx, Avg.avg))
+            print('Epoch {} Idx {} Loss {:.4f} Loss RMSE {:.4f}'.format(epoch, batch_idx, Avg.avg, Avg_metric.avg))
 
 
 def test(epoch,batch_idx_train):
@@ -151,7 +154,6 @@ def test(epoch,batch_idx_train):
         best_metric = Avg.avg
         save_state(config, net)
         print('Best Result: {:.4f}\n'.format(best_metric))
-
 
 if __name__ == '__main__':
     # Start training from pretrained
