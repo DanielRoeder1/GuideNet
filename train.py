@@ -18,7 +18,7 @@ cmap = plt.cm.viridis
 from PIL import Image
 
 
-def create_data_loaders():
+def create_data_loaders(sparsifier = "orb_sampler"):
     # Data loading code
     print("=> creating data loaders ...")
     nyu_path = '../nyudepthv2'
@@ -32,7 +32,7 @@ def create_data_loaders():
 
 
     max_depth = None
-    sparsifier = "orb_sampler"
+    #sparsifier = "orb_sampler"
     num_samples = 500
     data = 'nyudepthv2'
     evaluate = False
