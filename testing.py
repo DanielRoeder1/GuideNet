@@ -18,6 +18,9 @@ cmap = plt.cm.viridis
 os.environ["CUDA_VISIBLE_DEVICES"] = '0'
 
 def rmse(groundtruth, pred):
+  valid_mask = groundtruth> 1e-3
+  pred = pred[valid_mask]
+  groundtruth = groundtruth[valid_mask]
   return np.sqrt(np.mean((pred-groundtruth)**2))
 
 def colored_depthmap(depth, d_min=None, d_max=None):
